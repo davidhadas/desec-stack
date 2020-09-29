@@ -1,4 +1,4 @@
-from prometheus_client import Counter, Histogram
+from prometheus_client import Counter, Histogram, Summary
 
 metrics = {}
 
@@ -13,6 +13,10 @@ def set_counter(name, *args, **kwargs):
 
 def set_histogram(name, *args, **kwargs):
     metrics[name] = Histogram(name, *args, **kwargs)
+
+
+def set_summary(name, *args, **kwargs):
+    metrics[name] = Summary(name, *args, **kwargs)
 
 
 # models.py metrics
@@ -44,3 +48,7 @@ set_counter('desecapi_throttle_failure', 'number of requests throttled', ['metho
 
 # serializers.py metrics
 set_counter('desecapi_rrset_list_serializer', 'number of times RRsetListSerializer was initialized')
+
+# replication.py metrics
+set_summary('desecapi_replication_axfr_transfer_time', 'Time waited to transfer AXFR')
+set_summary('desecapi_replication_axfr_parse_time', 'Time waited to parse AXFR')

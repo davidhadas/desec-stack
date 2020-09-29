@@ -1,0 +1,15 @@
+{% autoescape off %}A Celery task raised a {{ exception_type }} exception.
+
+Task: {{ sender }}
+Task ID: {{ task_id }}
+Task arguments: {{ task_args }}
+Task keyword arguments: {{ task_kwargs }}
+
+Exception type: {{ exception_type }}
+Exception message: {{ exception }}
+
+{{ einfo }}
+
+Additional exception information:
+{{ exception_dict }}
+{% endautoescape %}

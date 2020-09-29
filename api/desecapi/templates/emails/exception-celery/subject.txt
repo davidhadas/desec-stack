@@ -1,0 +1,1 @@
+Celery Task Exception: {{ exception_type | safe }} {{ sender | safe }}
