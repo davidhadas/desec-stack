@@ -389,16 +389,14 @@ class Token(ExportModelOperationsMixin('Token'), rest_framework.authtoken.models
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     key = models.CharField("Key", max_length=128, db_index=True, unique=True)
-    user = models.ForeignKey(
-        User, related_name='auth_tokens',
-        on_delete=models.CASCADE, verbose_name="User"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField('Name', blank=True, max_length=64)
     last_used = models.DateTimeField(null=True, blank=True)
     perm_manage_tokens = models.BooleanField(default=False)
     allowed_subnets = ArrayField(CidrAddressField(), default=_allowed_subnets_default.__func__)
     max_age = models.DurationField(null=True, default=None, validators=[MinValueValidator(timedelta(0))])
     max_unused_period = models.DurationField(null=True, default=None, validators=[MinValueValidator(timedelta(0))])
+    perm_domains = models.ManyToManyField(Domain, through='TokenDomainPolicy')
 
     plain = None
     objects = NetManager()
@@ -432,6 +430,17 @@ class Token(ExportModelOperationsMixin('Token'), rest_framework.authtoken.models
     def make_hash(plain):
         return make_password(plain, salt='static', hasher='pbkdf2_sha256_iter1')
 
+
+class TokenDomainPolicy(ExportModelOperationsMixin('TokenDomainPolicy'), models.Model):
+    token = models.ForeignKey(Token, on_delete=models.CASCADE)
+    domain = models.ForeignKey(Domain, on_delete=models.CASCADE, null=True)
+    manage = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['token', 'domain'], name='unique_entry'),
+            models.UniqueConstraint(fields=['token'], condition=Q(domain__isnull=True), name='unique_entry_null_domain')
+        ]
 
 class Donation(ExportModelOperationsMixin('Donation'), models.Model):
     @staticmethod

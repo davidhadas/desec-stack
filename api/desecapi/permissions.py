@@ -2,6 +2,8 @@ from ipaddress import IPv4Address, IPv4Network
 
 from rest_framework import permissions
 
+from desecapi.models import TokenDomainPolicy
+
 
 class IsOwner(permissions.BasePermission):
     """
@@ -19,6 +21,25 @@ class IsDomainOwner(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return obj.domain.owner == request.user
+
+
+class CanManageDomain(permissions.BasePermission):
+    """
+    Custom permission to only allow owners of a domain to view or edit an object owned by that domain.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        try:
+            return TokenDomainPolicy.objects.get(token=request.auth, domain=obj).manage
+        except TokenDomainPolicy.DoesNotExist:
+            pass
+
+        try:
+            return TokenDomainPolicy.objects.get(token=request.auth, domain=None).manage
+        except TokenDomainPolicy.DoesNotExist:
+            pass
+
+        return True  # TODO should this be False?
 
 
 class IsVPNClient(permissions.BasePermission):

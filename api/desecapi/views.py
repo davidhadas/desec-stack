@@ -24,7 +24,8 @@ from desecapi import metrics, models, serializers
 from desecapi.exceptions import ConcurrencyException
 from desecapi.pdns import get_serials
 from desecapi.pdns_change_tracker import PDNSChangeTracker
-from desecapi.permissions import ManageTokensPermission, IsDomainOwner, IsOwner, IsVPNClient, WithinDomainLimitOnPOST
+from desecapi.permissions import (CanManageDomain, ManageTokensPermission, IsDomainOwner, IsOwner, IsVPNClient,
+                                  WithinDomainLimitOnPOST)
 from desecapi.renderers import PlainTextRenderer
 
 
@@ -71,10 +72,19 @@ class DomainViewMixin:
         super().initial(request, *args, **kwargs)
         try:
             # noinspection PyAttributeOutsideInit, PyUnresolvedReferences
-            self.domain = self.request.user.domains.get(name=self.kwargs['name'])
+            domain = self.request.user.domains.get(name=self.kwargs['name'])
         except models.Domain.DoesNotExist:
             raise Http404
 
+        permission = CanManageDomain()
+        if not permission.has_object_permission(request, self, domain):
+            self.permission_denied(
+                request,
+                message=getattr(permission, 'message', None),
+                code=getattr(permission, 'code', None)
+            )
+
+        self.domain = domain
 
 class TokenViewSet(IdempotentDestroyMixin, viewsets.ModelViewSet):
     serializer_class = serializers.TokenSerializer
@@ -82,7 +92,7 @@ class TokenViewSet(IdempotentDestroyMixin, viewsets.ModelViewSet):
     throttle_scope = 'account_management_passive'
 
     def get_queryset(self):
-        return self.request.user.auth_tokens.all()
+        return self.request.user.token_set.all()
 
     def get_serializer(self, *args, **kwargs):
         # When creating a new token, return the plaintext representation
@@ -101,7 +111,7 @@ class DomainViewSet(IdempotentDestroyMixin,
                     mixins.ListModelMixin,
                     viewsets.GenericViewSet):
     serializer_class = serializers.DomainSerializer
-    permission_classes = (IsAuthenticated, IsOwner, WithinDomainLimitOnPOST)
+    permission_classes = (IsAuthenticated, IsOwner, WithinDomainLimitOnPOST, CanManageDomain)
     lookup_field = 'name'
     lookup_value_regex = r'[^/]+'
 
