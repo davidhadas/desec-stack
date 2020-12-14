@@ -29,8 +29,11 @@ VALID_RECORDS_CANONICAL = {
         '1 issue "letsencrypt.org"'
     ],
     'CERT': ['6 0 0 sadfdQ=='],
+    'CDNSKEY': [None],
+    'CDS': [None],
     'CNAME': ['example.com.'],
     'DHCID': ['aaaaaaaaaaaa', 'xxxx'],
+    'DNSKEY': [None],
     'DLV': [
         '39556 13 1 aabbccddeeff',
     ],
@@ -138,8 +141,11 @@ VALID_RECORDS_NON_CANONICAL = {
     'APL': ['2:FF00:0:0:0:0::/8 !1:192.168.38.0/28'],
     'CAA': ['0128 "issue" "letsencrypt.org"'],
     'CERT': ['06 00 00 sadfee=='],
+    'CDNSKEY': [],  # managed automatically
+    'CDS': [],  # managed automatically
     'CNAME': ['EXAMPLE.TEST.'],
     'DHCID': ['aa aaa  aaaa a a a', 'xxxx'],
+    'DNSKEY': [],  # managed automatically
     'DLV': [
         '6454 8 2 5CBA665A006F6487625C6218522F09BD3673C25FA10F25CB18459AA1 0DF1F520',
         '6454 8 2 5C BA665A006F6487625C6218522F09BD3673C25FA10F25CB18459AA1 0DF1F520',
@@ -261,9 +267,16 @@ INVALID_RECORDS = {
     ],
     'CAA': ['43235 issue "letsencrypt.org"'],
     'CERT': ['6 0 sadfdd=='],
+    'CDNSKEY': [  # managed automatically, can't tinker
+        '257 3 13 aCoEWYBBVsP9Fek2oC8yqU8ocKmnS1iDSFZNORnQuHKtJ9Wpyz+kNryq uB78Pyk/NTEoai5bxoipVQQXzHlzyg==',
+    ],
+    'CDS': ['6454 8 1 24396E17E36D031F71C354B06A979A67A01F503E'],  # managed automatically, can't tinker
     'CNAME': ['example.com', '10 example.com.'],
     'DHCID': ['x', 'xx', 'xxx'],
     'DLV': ['-34 13 1 aabbccddeeff'],
+    'DNSKEY': [  # managed automatically, can't tinker
+        '257 3 13 aCoEWYBBVsP9Fek2oC8yqU8ocKmnS1iDSFZNORnQuHKtJ9Wpyz+kNryq uB78Pyk/NTEoai5bxoipVQQXzHlzyg==',
+    ],
     'DS': ['-34 13 1 aabbccddeeff'],
     'EUI48': ['aa-bb-ccdd-ee-ff', 'AA-BB-CC-DD-EE-GG'],
     'EUI64': ['aa-bb-cc-dd-ee-ff-gg-11', 'AA-BB-C C-DD-EE-FF-00-11'],
@@ -313,9 +326,15 @@ def test_soundness():
 
 def _create_assert_valid(api_user_domain, ns_lord, rr_type, value, assertion):
     domain_name = api_user_domain.domain
-    expected = {value}
-    assert api_user_domain.rr_set_create(domain_name, rr_type, [value], subname='a').status_code == 201
-    rrset = ns_lord.query(f'a.{domain_name}', rr_type)
+    expected = set()
+    subname = 'a'
+    if rr_type in ('CDNSKEY', 'CDS', 'DNSKEY'):
+        expected |= api_user_domain.get_key_params(domain_name, rr_type)
+        subname = ''
+    if value is not None:
+        assert api_user_domain.rr_set_create(domain_name, rr_type, [value], subname=subname).status_code == 201
+        expected.add(value)
+    rrset = ns_lord.query(f'{subname}.{domain_name}'.strip('.'), rr_type)
     assert assertion(rrset, expected)
 
 
