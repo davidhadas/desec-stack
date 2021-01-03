@@ -405,6 +405,17 @@ services:
         tag: "desec/prometheus"
     restart: unless-stopped
 
+  gitzones:
+    build: gitzones
+    init: true
+    environment:
+      - DESECSTACK_DOMAIN
+    volumes:
+      - zones:/zones:ro
+      - gitzones_keys:/etc/ssh/keys/:rw
+    ports:
+      - "222:22"
+
 volumes:
   dbapi_postgres:
   dblord_mysql:
@@ -415,6 +426,7 @@ volumes:
   webapp_dist:
   zones:
   celerybeat:
+  gitzones_keys:
 
 networks:
   # Note that it is required that the front network ranks lower (in lexical order)
