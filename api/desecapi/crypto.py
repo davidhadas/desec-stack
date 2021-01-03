@@ -29,7 +29,7 @@ def retrieve_key(*, label, context):
 def encrypt(data, *, context):
     key = retrieve_key(label=b'crypt', context=context)
     value = Fernet(key=key).encrypt(data)
-    metrics.get('desecapi_key_encryption_success').labels(context).inc()
+    metrics.Crypto.key_encryption_success.labels(context).inc()
     return value
 
 
@@ -37,7 +37,7 @@ def decrypt(token, *, context, ttl=None):
     key = retrieve_key(label=b'crypt', context=context)
     try:
         value = Fernet(key=key).decrypt(token, ttl=ttl)
-        metrics.get('desecapi_key_decryption_success').labels(context).inc()
+        metrics.Crypto.key_decryption_success.labels(context).inc()
         return value
     except InvalidToken:
         raise ValueError

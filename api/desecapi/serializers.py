@@ -231,7 +231,7 @@ class RRsetSerializer(ConditionalExistenceModelSerializer):
         # the RRSet is created (never partial) or not (partial if PATCH), for each given item (RRset) individually.
         kwargs['child'] = cls(domain=domain)
         serializer = RRsetListSerializer(*args, **kwargs)
-        metrics.get('desecapi_rrset_list_serializer').inc()
+        metrics.Serializer.rrset_list_init.inc()
         return serializer
 
     def get_fields(self):

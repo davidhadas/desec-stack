@@ -46,7 +46,7 @@ def exception_handler(exc, context):
         )
     ):
         _log()
-        metrics.get('desecapi_database_unavailable').inc()
+        metrics.ExceptionHandlers.database_unavailable.inc()
         return _503()
 
     handlers = {

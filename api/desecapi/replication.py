@@ -8,8 +8,7 @@ import dns.zone
 from celery import shared_task
 from django.utils import timezone
 
-from desecapi import models
-from desecapi.metrics import metrics
+from desecapi import models, metrics
 
 
 class ReplicationException(Exception):
@@ -126,7 +125,7 @@ class ZoneRepository(Repository):
         t = timezone.now()
         try:
             xfr = list(dns.query.xfr(self.AXFR_SOURCE, name, timeout=timeout))
-            metrics.get('desecapi_replication_axfr_transfer_time').observe((timezone.now() - t).total_seconds())
+            metrics.Replication.axfr_transfer_time.observe((timezone.now() - t).total_seconds())
         except dns.query.TransferError as e:
             if e.rcode == dns.rcode.Rcode.NOTAUTH:
                 self._delete_zone(name)
@@ -138,7 +137,7 @@ class ZoneRepository(Repository):
     def _update_zone(self, name: str, xfr: List[dns.message.QueryMessage]):
         t = timezone.now()
         z = dns.zone.from_xfr(xfr)
-        metrics.get('desecapi_replication_axfr_parse_time').observe((timezone.now() - t).total_seconds())
+        metrics.Replication.axfr_parse_time.observe((timezone.now() - t).total_seconds())
         try:
             print(f'New SOA for {name}: '
                   f'{z.get_rrset(name="", rdtype=dns.rdatatype.SOA).to_text()}')

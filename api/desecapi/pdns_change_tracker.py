@@ -75,7 +75,7 @@ class PDNSChangeTracker:
         def update_catalog(self, delete=False):
             content = _pdns_patch(NSMASTER, '/zones/' + pdns_id(settings.CATALOG_ZONE),
                                {'rrsets': [construct_catalog_rrset(zone=self.domain_name, delete=delete)]})
-            metrics.get('desecapi_pdns_catalog_updated').inc()
+            metrics.ChangeTracker.catalog_updated.inc()
             return content
 
     class CreateDomain(PDNSChange):

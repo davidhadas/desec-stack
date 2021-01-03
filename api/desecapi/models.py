@@ -186,7 +186,7 @@ class User(ExportModelOperationsMixin('User'), AbstractBaseUser):
             to=[recipient or self.email],
             connection=get_connection(lane=lanes[reason], debug={'user': self.pk, 'reason': reason})
         ).send()
-        metrics.get('desecapi_messages_queued').labels(reason, self.pk, lanes[reason]).observe(num_queued)
+        metrics.Model.email_queued.labels(reason, self.pk, lanes[reason]).observe(num_queued)
         return num_queued
 
 
@@ -365,12 +365,12 @@ class Domain(ExportModelOperationsMixin('Domain'), models.Model):
             RRset.objects.create(domain=self, subname=child_subname, type='NS', ttl=3600, contents=settings.DEFAULT_NS)
             RRset.objects.create(domain=self, subname=child_subname, type='DS', ttl=300,
                                  contents=[ds for k in child_keys for ds in k['ds']])
-            metrics.get('desecapi_autodelegation_created').inc()
+            metrics.Model.autodelegation_created.inc()
         else:
             # Domain not real: remove delegation
             for rrset in self.rrset_set.filter(subname=child_subname, type__in=['NS', 'DS']):
                 rrset.delete()
-            metrics.get('desecapi_autodelegation_deleted').inc()
+            metrics.Model.autodelegation_deleted.inc()
 
     def delete(self):
         ret = super().delete()
@@ -910,7 +910,7 @@ def captcha_default_content(kind: str) -> str:
         raise ValueError(f'Unknown Captcha kind: {kind}')
 
     content = ''.join([secrets.choice(alphabet) for _ in range(length)])
-    metrics.get('desecapi_captcha_content_created').labels(kind).inc()
+    metrics.Model.captcha_content_created.labels(kind).inc()
     return content
 
 

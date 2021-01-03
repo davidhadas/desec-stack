@@ -352,7 +352,7 @@ class DynDNS12Update(APIView):
         domain = self._find_domain(request)
 
         if domain is None:
-            metrics.get('desecapi_dynDNS12_domain_not_found').inc()
+            metrics.View.dynDNS12_domain_not_found.inc()
             raise NotFound('nohost')
 
         ipv4 = self._find_ip_v4(request)
