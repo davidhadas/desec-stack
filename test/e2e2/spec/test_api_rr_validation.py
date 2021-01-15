@@ -311,22 +311,34 @@ def test_soundness():
     assert INVALID_RECORDS.keys() == VALID_RECORDS_CANONICAL.keys() == VALID_RECORDS_NON_CANONICAL.keys()
 
 
+def _create_assert_valid(api_user_domain, ns_lord, rr_type, value, assertion):
+    domain_name = api_user_domain.domain
+    expected = {value}
+    assert api_user_domain.rr_set_create(domain_name, rr_type, [value], subname='a').status_code == 201
+    rrset = ns_lord.query(f'a.{domain_name}', rr_type)
+    assert assertion(rrset, expected)
+
+
 @pytest.mark.parametrize("rr_type,value", generate_params(VALID_RECORDS_CANONICAL))
 def test_create_valid_canonical(api_user_domain: DeSECAPIV1Client, ns_lord: NSClient, rr_type: str, value: str):
-    assert api_user_domain.rr_set_create(api_user_domain.domains[0], rr_type, [value], subname="a").status_code == 201
-    assert ns_lord.query(f"a.{api_user_domain.domains[0]}", rr_type) == {value}
+    def _assertion(rrset, expected):
+        return rrset == expected
+
+    _create_assert_valid(api_user_domain, ns_lord, rr_type, value, _assertion)
 
 
 @pytest.mark.parametrize("rr_type,value", generate_params(VALID_RECORDS_NON_CANONICAL))
 def test_create_valid_non_canonical(api_user_domain: DeSECAPIV1Client, ns_lord: NSClient, rr_type: str, value: str):
-    assert api_user_domain.rr_set_create(api_user_domain.domains[0], rr_type, [value], subname="a").status_code == 201
-    assert len(ns_lord.query(f"a.{api_user_domain.domains[0]}", rr_type)) == 1
+    def _assertion(rrset, expected):
+        return len(rrset) == len(expected)
+
+    _create_assert_valid(api_user_domain, ns_lord, rr_type, value, _assertion)
 
 
 @pytest.mark.parametrize("rr_type,value", INVALID_RECORDS_PARAMS)
 def test_create_invalid(api_user_domain: DeSECAPIV1Client, rr_type: str, value: str):
-    assert api_user_domain.rr_set_create(api_user_domain.domains[0], rr_type, [value]).status_code == 400
+    assert api_user_domain.rr_set_create(api_user_domain.domain, rr_type, [value]).status_code == 400
 
 def test_create_long_subname(api_user_domain: DeSECAPIV1Client, ns_lord: NSClient):
-    assert api_user_domain.rr_set_create(api_user_domain.domains[0], "AAAA", ["::1"], subname="a"*63).status_code == 201
-    assert ns_lord.query(f"{'a'*63}.{api_user_domain.domains[0]}", "AAAA") == {"::1"}
+    assert api_user_domain.rr_set_create(api_user_domain.domain, "AAAA", ["::1"], subname="a"*63).status_code == 201
+    assert ns_lord.query(f"{'a'*63}.{api_user_domain.domain}", "AAAA") == {"::1"}

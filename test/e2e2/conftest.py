@@ -76,7 +76,7 @@ class DeSECAPIV1Client:
         super().__init__()
         self.email = None
         self.password = None
-        self.domains = []
+        self.domains = {}
 
         # We support two certificate verification methods
         # (1) against self-signed certificates, if /autocert path is present
@@ -96,6 +96,13 @@ class DeSECAPIV1Client:
         except (KeyError, TypeError):
             pass
         return output
+
+    @property
+    def domain(self):
+        try:
+            return next(iter(self.domains))
+        except StopIteration:
+            return None
 
     def _do_request(self, *args, **kwargs):
         verify_list = [self.verify] + self.verify_alt
@@ -182,17 +189,17 @@ class DeSECAPIV1Client:
         return self.get("/domains/")
 
     def domain_create(self, name) -> requests.Response:
-        self.domains.append(name)
-        return self.post(
-            "/domains/",
-            data={
-                "name": name,
-            }
-        )
+        if name in self.domains:
+            raise ValueError
+        response = self.post("/domains/", data={"name": name})
+        self.domains[name] = response.json()
+        return response
 
     def domain_destroy(self, name) -> requests.Response:
-        self.domains.remove(name)
-        return self.delete(f"/domains/{name}/")
+        try:
+            return self.delete(f"/domains/{name}/")
+        finally:
+            self.domains.pop(name)
 
     def rr_set_create(self, domain_name: str, rr_type: str, records: Iterable[str], subname: str = '',
                       ttl: int = 3600) -> requests.Response:
