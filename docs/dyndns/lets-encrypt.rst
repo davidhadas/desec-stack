@@ -49,7 +49,7 @@ steps.
      certbot --manual --manual-auth-hook ./hook.sh --manual-cleanup-hook ./hook.sh \
          --preferred-challenges dns -d "YOURDOMAINNAME.dedyn.io" certonly
          
-   You can also use certbot to get wildcard certificates like so:
+   You can also use certbot to get wildcard certificates like so::
    
      certbot --manual --manual-auth-hook ./hook.sh --manual-cleanup-hook ./hook.sh \
          --preferred-challenges dns -d "example.com" -d "*.example.com" certonly
@@ -61,6 +61,10 @@ steps.
    located in the current directory). Please also note that the hook script may
    wait up to two minutes to be sure that the challenge was correctly
    published.
+
+#. **Renew certificate.** To renew your certificate (it will auto expire with 90 days), 
+   run:: 
+      certbot renew
 
    **Note:** To include subdomains in your certificate, you can specify the
    ``-d`` argument several times, e.g.
